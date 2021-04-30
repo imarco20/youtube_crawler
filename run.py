@@ -2,6 +2,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from googleapiclient.discovery import build
 import sys
 import getopt
+import os
 
 from channel import Channel
 from crawler import PlaylistCrawler, ChannelCrawler
@@ -10,12 +11,15 @@ from playlist import Playlist
 
 scheduler = BlockingScheduler()
 
-api_key = "AIzaSyAfsclKs6PdPUhK3utgJDJx1TN6cLkpAWE"
+api_key = os.environ.get("api_key")
 
 youtube_service = build('youtube', 'v3', developerKey=api_key)
 
+channel_url = ""
+playlist_url = ""
 
-def scheduled_job(channel_url, playlist_url):
+@scheduler.scheduled_job('interval', seconds=10)
+def scheduled_job():
     if channel_url:
         channel = Channel(channel_url)
         crawler = ChannelCrawler(youtube_service, channel)
@@ -27,8 +31,8 @@ def scheduled_job(channel_url, playlist_url):
 
 
 def main(argv):
-    channel = ""
-    playlist = ""
+    global channel_url
+    global playlist_url
 
     try:
         opts, args = getopt.getopt(argv, "c:p:")
@@ -40,13 +44,10 @@ def main(argv):
         if opt in ['-c']:
             print(arg)
             channel = arg
-            scheduler.add_job(scheduled_job(channel, playlist), 'interval', seconds=10)
-            scheduler.start()
         elif opt in ['-p']:
             print(arg)
             playlist = arg
-            scheduler.add_job(scheduled_job(channel, playlist), 'interval', seconds=10)
-            scheduler.start()
+    scheduler.start()
 
 
 if __name__ == "__main__":
